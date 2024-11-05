@@ -1,15 +1,20 @@
 <?php
-// Database connection details
-$host = 'localhost';       // Your database host (e.g., localhost)
-$dbname = "water_management"; // Database name        // Your database name
-$username = 'root';        // Your database username
-$password = '';            // Your database password (leave empty for default XAMPP setup)
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-// Create a new connection
+// Database connection details
+$host = 'localhost'; // Your database host
+$username = 'root'; // Your database username
+$password = ''; // Your database password (if no password, leave it empty)
+$db_name = 'water_management'; // Your database name
+
+// Create a new database connection
 $conn = new mysqli($host, $username, $password, $db_name);
 
-// Check the connection
+// Check if the connection was successful
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    die('Connection failed: ' . $conn->connect_error);
 }
 ?>
