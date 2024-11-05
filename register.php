@@ -6,7 +6,7 @@ header("Content-Type: application/json");
 
 // Database configuration
 $servername = "localhost"; // Database server
-$username = "your_username"; // Database username
+$username = "root"; // Database username
 $password = "your_password"; // Database password
 $dbname = "water_management"; // Database name
 
