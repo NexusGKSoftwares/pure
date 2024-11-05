@@ -43,7 +43,7 @@ if ($result->num_rows > 0) {
         echo json_encode(['message' => 'Login successful', 'user' => $user]);
     } else {
         // Invalid password
-        echo json_encode(['message' => 'Invalid email or password']);
+        echo json_encode(['message' => 'Incorrect password']);
     }
 } else {
     // No user found
