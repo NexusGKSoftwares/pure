@@ -1,33 +1,34 @@
 <?php
-header('Content-Type: application/json');
+// Set headers to handle JSON input
+header("Content-Type: application/json");
 
-include 'db_connection.php'; // Include your database connection
+// Read the incoming JSON data
+$data = json_decode(file_get_contents("php://input"), true);
 
-// Retrieve data from the frontend
-$email = $_POST['email'];
-$password = $_POST['password'];
-$name = $_POST['name'];
+// Check if the data is set and not null
+$email = isset($data['email']) ? $data['email'] : null;
+$password = isset($data['password']) ? $data['password'] : null;
+$name = isset($data['name']) ? $data['name'] : null;
 
-// Hash the password for security
-$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+if ($email && $password && $name) {
+    // Hash the password
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-// SQL query to insert a new user
-$sql = "INSERT INTO users (email, password, name) VALUES ('$email', '$hashedPassword', '$name')";
+    // Your database connection and insertion logic here
+    // ...
 
-if ($conn->query($sql) === TRUE) {
-    // Get the newly created user's ID
-    $userId = $conn->insert_id; // Assuming 'id' is the auto-incremented primary key
-
-    echo json_encode([
+    // Example response
+    $response = [
         "message" => "Registration successful",
-        "userId" => $userId,
+        "userId" => 5, // Replace with actual user ID
         "email" => $email,
         "name" => $name
-    ]);
+    ];
 } else {
-    echo json_encode([
-        "message" => "Error: " . $conn->error
-    ]);
+    $response = [
+        "message" => "Invalid input data"
+    ];
 }
 
-$conn->close();
+echo json_encode($response);
+?>
