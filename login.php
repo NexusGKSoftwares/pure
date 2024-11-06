@@ -1,27 +1,44 @@
 <?php
-header('Content-Type: application/json');
+// Set headers to handle JSON input
+header("Content-Type: application/json");
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-include 'db_connection.php'; // Include your database connection
+// Read the incoming JSON data
+$data = json_decode(file_get_contents("php://input"), true);
 
-$email = $_POST['email'];
-$password = $_POST['password'];
+// Check if the data is set and not null
+$email = isset($data['email']) ? $data['email'] : null;
+$password = isset($data['password']) ? $data['password'] : null;
 
-// Query to check user
-$sql = "SELECT * FROM users WHERE email = '$email' AND password = '$password'";
-$result = $conn->query($sql);
+if ($email && $password) {
+    // Your database connection logic
+    // ...
 
-if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
-    echo json_encode([
-        "message" => "Login successful",
-        "userId" => $user['id'],
-        "email" => $user['email'],
-        "name" => $user['name']
-    ]);
+    // Check user credentials from your database
+    // (Replace this logic with your own)
+    // Example pseudo-code:
+    $user = // your logic to fetch user using email and password from the database
+
+    if ($user && password_verify($password, $user['hashed_password'])) {
+        // Login successful
+        $response = [
+            "message" => "Login successful",
+            "userId" => $user['id'], // Replace with actual user ID
+            "email" => $user['email'], // Replace with actual user email
+            "name" => $user['name'], // Replace with actual user name
+        ];
+    } else {
+        // Invalid credentials
+        $response = [
+            "message" => "Invalid credentials"
+        ];
+    }
 } else {
-    echo json_encode([
-        "message" => "Invalid credentials"
-    ]);
+    $response = [
+        "message" => "Invalid input data"
+    ];
 }
 
-$conn->close();
+echo json_encode($response);
+?>
