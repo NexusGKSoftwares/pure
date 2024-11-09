@@ -1,37 +1,60 @@
-
 <?php
+// Include your database connection file
 include 'db_connection.php';
 
-$userId = $_POST['userId'];
-$ratePerUnit = 150;
-$standingCharge = 300;
+if ($_SERVER['REQUEST_METHOD'] == 'GET' || $_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Check if 'userId' is passed
+    $userId = isset($_GET['userId']) ? $_GET['userId'] : (isset($_POST['userId']) ? $_POST['userId'] : null);
 
-// Fetch the latest meter readings
-$readingQuery = "SELECT previous_reading, current_reading FROM meter_readings WHERE user_id = ? ORDER BY reading_date DESC LIMIT 1";
-$stmt = $conn->prepare($readingQuery);
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$readingResult = $stmt->get_result()->fetch_assoc();
+    if ($userId === null) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Missing userId'
+        ]);
+        exit;
+    }
 
-$consumedUnits = $readingResult['current_reading'] - $readingResult['previous_reading'];
-$unitCharge = $consumedUnits * $ratePerUnit;
+    // Other required data (You can add other inputs if needed, like readings)
+    $previousReading = isset($_POST['previous_reading']) ? $_POST['previous_reading'] : null;
+    $currentReading = isset($_POST['current_reading']) ? $_POST['current_reading'] : null;
+    $readingDate = isset($_POST['reading_date']) ? $_POST['reading_date'] : null;
 
-// Fetch previous balance
-$balanceQuery = "SELECT amount_due FROM bills WHERE user_id = ? AND payment_status = 'unpaid' ORDER BY due_date DESC LIMIT 1";
-$stmt = $conn->prepare($balanceQuery);
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$balanceResult = $stmt->get_result()->fetch_assoc();
-$previousBalance = $balanceResult['amount_due'] ?? 0;
+    if ($previousReading === null || $currentReading === null || $readingDate === null) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Missing required fields (reading details).'
+        ]);
+        exit;
+    }
 
-$totalAmountDue = $unitCharge + $previousBalance + $standingCharge;
+    // Your SQL query to generate the bill
+    $sql = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date) 
+            VALUES (?, ?, ?, ?)";
 
-// Insert bill
-$dueDate = date("Y-m-d", strtotime("+7 days"));
-$insertQuery = "INSERT INTO bills (user_id, amount_due, previous_balance, due_date, generated_date) VALUES (?, ?, ?, ?, NOW())";
-$stmt = $conn->prepare($insertQuery);
-$stmt->bind_param("iids", $userId, $totalAmountDue, $previousBalance, $dueDate);
-$stmt->execute();
+    if ($stmt = mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, "iiis", $userId, $previousReading, $currentReading, $readingDate);
 
-echo json_encode(["status" => "success", "amount_due" => $totalAmountDue, "due_date" => $dueDate]);
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Bill generated successfully.'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error generating the bill.'
+            ]);
+        }
+
+        mysqli_stmt_close($stmt);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error with database query.'
+        ]);
+    }
+
+    // Close connection
+    mysqli_close($conn);
+}
 ?>
