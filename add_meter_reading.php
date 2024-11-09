@@ -1,23 +1,31 @@
-
 <?php
 include 'db_connection.php';
 
-$userId = $_POST['userId'];
-$currentReading = $_POST['currentReading'];
-$date = date("Y-m-d");
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Retrieve the values from the POST request
+    $user_id = isset($_POST['user_id']) ? $_POST['user_id'] : null;
+    $previous_reading = isset($_POST['previous_reading']) ? $_POST['previous_reading'] : null;
+    $current_reading = isset($_POST['current_reading']) ? $_POST['current_reading'] : null;
+    $reading_date = isset($_POST['reading_date']) ? $_POST['reading_date'] : null;
 
-// Fetch previous reading
-$previousQuery = "SELECT current_reading FROM meter_readings WHERE user_id = ? ORDER BY reading_date DESC LIMIT 1";
-$stmt = $conn->prepare($previousQuery);
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$previousResult = $stmt->get_result();
-$previousReading = $previousResult->fetch_assoc()['current_reading'] ?? 0;
+    // Check if required fields are present
+    if ($user_id && $previous_reading && $current_reading && $reading_date) {
+        $sql = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date)
+                VALUES (?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("iiis", $user_id, $previous_reading, $current_reading, $reading_date);
 
-// Insert new meter reading
-$query = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date) VALUES (?, ?, ?, ?)";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("iiis", $userId, $previousReading, $currentReading, $date);
-$stmt->execute();
-echo json_encode(["status" => "success"]);
+        if ($stmt->execute()) {
+            echo json_encode(["success" => true, "message" => "Meter reading added successfully."]);
+        } else {
+            echo json_encode(["success" => false, "message" => "Error adding meter reading."]);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(["success" => false, "message" => "Missing required fields."]);
+    }
+} else {
+    echo json_encode(["success" => false, "message" => "Invalid request method."]);
+}
+$conn->close();
 ?>
