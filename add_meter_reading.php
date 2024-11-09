@@ -1,14 +1,15 @@
 <?php
 include 'db_connection.php';
 
+// Debugging output to check received data
+print_r($_POST);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Retrieve the values from the POST request
     $user_id = isset($_POST['user_id']) ? $_POST['user_id'] : null;
     $previous_reading = isset($_POST['previous_reading']) ? $_POST['previous_reading'] : null;
     $current_reading = isset($_POST['current_reading']) ? $_POST['current_reading'] : null;
     $reading_date = isset($_POST['reading_date']) ? $_POST['reading_date'] : null;
 
-    // Check if required fields are present
     if ($user_id && $previous_reading && $current_reading && $reading_date) {
         $sql = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date)
                 VALUES (?, ?, ?, ?)";
