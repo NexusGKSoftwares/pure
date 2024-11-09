@@ -2,24 +2,19 @@
 // Include your database connection file
 include 'db_connection.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'GET' || $_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Check if 'userId' is passed
-    $userId = isset($_GET['userId']) ? $_GET['userId'] : (isset($_POST['userId']) ? $_POST['userId'] : null);
-
-    if ($userId === null) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Missing userId'
-        ]);
-        exit;
-    }
-
-    // Other required data (You can add other inputs if needed, like readings)
+// Check the request method and parameters
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Get the data from POST request
+    $userId = isset($_POST['userId']) ? $_POST['userId'] : null;
     $previousReading = isset($_POST['previous_reading']) ? $_POST['previous_reading'] : null;
     $currentReading = isset($_POST['current_reading']) ? $_POST['current_reading'] : null;
     $readingDate = isset($_POST['reading_date']) ? $_POST['reading_date'] : null;
 
-    if ($previousReading === null || $currentReading === null || $readingDate === null) {
+    // Debugging: Check what data we are receiving
+    error_log('Received POST Data: userId=' . $userId . ', previous_reading=' . $previousReading . ', current_reading=' . $currentReading . ', reading_date=' . $readingDate);
+
+    // Check if all required fields are provided
+    if ($userId === null || $previousReading === null || $currentReading === null || $readingDate === null) {
         echo json_encode([
             'success' => false,
             'message' => 'Missing required fields (reading details).'
