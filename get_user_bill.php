@@ -1,4 +1,4 @@
-// get_user_bill.php
+
 <?php
 include 'db_connect.php';
 

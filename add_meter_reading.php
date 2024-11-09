@@ -1,4 +1,4 @@
-// add_meter_reading.php
+
 <?php
 include 'db_connect.php';
 
