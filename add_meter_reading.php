@@ -1,6 +1,6 @@
 
 <?php
-include 'db_connect.php';
+include 'db_connection.php';
 
 $userId = $_POST['userId'];
 $currentReading = $_POST['currentReading'];
