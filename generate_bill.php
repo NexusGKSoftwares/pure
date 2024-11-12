@@ -2,19 +2,19 @@
 // Include your database connection file
 include 'db_connection.php';
 
-// Define the rate per unit (e.g., $0.05 per unit)
-define('RATE_PER_UNIT', 0.05);
-
-// Check the request method and parameters
+// Check the request method
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get the data from POST request
-    $userId = isset($_POST['userId']) ? $_POST['userId'] : null;
-    $previousReading = isset($_POST['previous_reading']) ? $_POST['previous_reading'] : null;
-    $currentReading = isset($_POST['current_reading']) ? $_POST['current_reading'] : null;
-    $readingDate = isset($_POST['reading_date']) ? $_POST['reading_date'] : null;
+    // Decode the JSON data from the request body
+    $data = json_decode(file_get_contents("php://input"), true);
 
-    // Debugging: Check what data we are receiving
-    error_log('Received POST Data: userId=' . $userId . ', previous_reading=' . $previousReading . ', current_reading=' . $currentReading . ', reading_date=' . $readingDate);
+    // Get the data from the decoded JSON object
+    $userId = isset($data['userId']) ? $data['userId'] : null;
+    $previousReading = isset($data['previous_reading']) ? $data['previous_reading'] : null;
+    $currentReading = isset($data['current_reading']) ? $data['current_reading'] : null;
+    $readingDate = isset($data['reading_date']) ? $data['reading_date'] : null;
+
+    // Debugging: Log the received data to check if values are correctly parsed
+    error_log('Received Data: userId=' . $userId . ', previous_reading=' . $previousReading . ', current_reading=' . $currentReading . ', reading_date=' . $readingDate);
 
     // Check if all required fields are provided
     if ($userId === null || $previousReading === null || $currentReading === null || $readingDate === null) {
@@ -25,62 +25,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit;
     }
 
-    // Calculate the units consumed
-    $unitsConsumed = $currentReading - $previousReading;
+    // SQL query to insert a new meter reading record
+    $sql = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date) 
+            VALUES (?, ?, ?, ?)";
 
-    // Calculate the bill amount
-    $amountDue = $unitsConsumed * RATE_PER_UNIT;
+    // Prepare and execute the SQL statement
+    if ($stmt = mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, "iiis", $userId, $previousReading, $currentReading, $readingDate);
 
-    // Debugging: Check calculated units and amount due
-    error_log('Calculated Units Consumed: ' . $unitsConsumed . ', Amount Due: ' . $amountDue);
-
-    // Start a transaction
-    mysqli_begin_transaction($conn);
-
-    try {
-        // Insert into meter_readings table
-        $sqlMeter = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date) 
-                     VALUES (?, ?, ?, ?)";
-        $stmtMeter = mysqli_prepare($conn, $sqlMeter);
-        mysqli_stmt_bind_param($stmtMeter, "iiis", $userId, $previousReading, $currentReading, $readingDate);
-
-        if (!mysqli_stmt_execute($stmtMeter)) {
-            throw new Exception('Error inserting meter reading.');
+        // Execute the statement and provide response based on result
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Bill generated successfully.'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error generating the bill.'
+            ]);
         }
-        mysqli_stmt_close($stmtMeter);
 
-        // Insert into bills table with calculated amount
-        $dueDate = date('Y-m-d', strtotime('+30 days'));  // Set due date as 30 days from today
-        $sqlBill = "INSERT INTO bills (user_id, amount, due_date, payment_status) 
-                    VALUES (?, ?, ?, 'Unpaid')";
-        $stmtBill = mysqli_prepare($conn, $sqlBill);
-        mysqli_stmt_bind_param($stmtBill, "ids", $userId, $amountDue, $dueDate);
-
-        if (!mysqli_stmt_execute($stmtBill)) {
-            throw new Exception('Error generating the bill.');
-        }
-        mysqli_stmt_close($stmtBill);
-
-        // Commit transaction
-        mysqli_commit($conn);
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Bill generated successfully.',
-            'unitsConsumed' => $unitsConsumed,
-            'amountDue' => $amountDue
-        ]);
-
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        mysqli_rollback($conn);
+        // Close the statement
+        mysqli_stmt_close($stmt);
+    } else {
         echo json_encode([
             'success' => false,
-            'message' => $e->getMessage()
+            'message' => 'Error with database query.'
         ]);
     }
 
-    // Close connection
+    // Close the database connection
     mysqli_close($conn);
 }
 ?>
