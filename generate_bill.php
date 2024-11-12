@@ -2,6 +2,9 @@
 // Include your database connection file
 include 'db_connection.php';
 
+// Define the rate per unit (e.g., $0.05 per unit)
+define('RATE_PER_UNIT', 0.05);
+
 // Check the request method and parameters
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Get the data from POST request
@@ -22,30 +25,58 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit;
     }
 
-    // Your SQL query to generate the bill
-    $sql = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date) 
-            VALUES (?, ?, ?, ?)";
+    // Calculate the units consumed
+    $unitsConsumed = $currentReading - $previousReading;
 
-    if ($stmt = mysqli_prepare($conn, $sql)) {
-        mysqli_stmt_bind_param($stmt, "iiis", $userId, $previousReading, $currentReading, $readingDate);
+    // Calculate the bill amount
+    $amountDue = $unitsConsumed * RATE_PER_UNIT;
 
-        if (mysqli_stmt_execute($stmt)) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'Bill generated successfully.'
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error generating the bill.'
-            ]);
+    // Debugging: Check calculated units and amount due
+    error_log('Calculated Units Consumed: ' . $unitsConsumed . ', Amount Due: ' . $amountDue);
+
+    // Start a transaction
+    mysqli_begin_transaction($conn);
+
+    try {
+        // Insert into meter_readings table
+        $sqlMeter = "INSERT INTO meter_readings (user_id, previous_reading, current_reading, reading_date) 
+                     VALUES (?, ?, ?, ?)";
+        $stmtMeter = mysqli_prepare($conn, $sqlMeter);
+        mysqli_stmt_bind_param($stmtMeter, "iiis", $userId, $previousReading, $currentReading, $readingDate);
+
+        if (!mysqli_stmt_execute($stmtMeter)) {
+            throw new Exception('Error inserting meter reading.');
         }
+        mysqli_stmt_close($stmtMeter);
 
-        mysqli_stmt_close($stmt);
-    } else {
+        // Insert into bills table with calculated amount
+        $dueDate = date('Y-m-d', strtotime('+30 days'));  // Set due date as 30 days from today
+        $sqlBill = "INSERT INTO bills (user_id, amount, due_date, payment_status) 
+                    VALUES (?, ?, ?, 'Unpaid')";
+        $stmtBill = mysqli_prepare($conn, $sqlBill);
+        mysqli_stmt_bind_param($stmtBill, "ids", $userId, $amountDue, $dueDate);
+
+        if (!mysqli_stmt_execute($stmtBill)) {
+            throw new Exception('Error generating the bill.');
+        }
+        mysqli_stmt_close($stmtBill);
+
+        // Commit transaction
+        mysqli_commit($conn);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Bill generated successfully.',
+            'unitsConsumed' => $unitsConsumed,
+            'amountDue' => $amountDue
+        ]);
+
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        mysqli_rollback($conn);
         echo json_encode([
             'success' => false,
-            'message' => 'Error with database query.'
+            'message' => $e->getMessage()
         ]);
     }
 
