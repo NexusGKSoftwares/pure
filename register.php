@@ -31,4 +31,13 @@ if ($email && $password && $name) {
 }
 
 echo json_encode($response);
+$userId = 123; // Example user ID
+$message = "New user joined: User ID $userId";
+$eventType = "user_registration";
+
+$stmt = $conn->prepare("INSERT INTO notifications (user_id, message, event_type) VALUES (?, ?, ?)");
+$stmt->bind_param("iss", $userId, $message, $eventType);
+$stmt->execute();
+$stmt->close();
+
 ?>
