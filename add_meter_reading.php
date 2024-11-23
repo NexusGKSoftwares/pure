@@ -36,4 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method."]);
 }
 $conn->close();
+$userId = 123; // Example user ID
+$message = "Meter reading submitted by User ID $userId";
+$eventType = "meter_reading";
+
+$stmt = $conn->prepare("INSERT INTO notifications (user_id, message, event_type) VALUES (?, ?, ?)");
+$stmt->bind_param("iss", $userId, $message, $eventType);
+$stmt->execute();
+$stmt->close();
+
 ?>
