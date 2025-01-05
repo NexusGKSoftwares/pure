@@ -1,20 +1,17 @@
 <?php
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 // Database connection details
-$host = 'localhost'; // Your database host
-$username = 'root'; // Your database username
-$password = ''; // Your database password (if no password, leave it empty)
-$db_name = 'water_management'; // Your database name
+$servername = "localhost";
+$username = "root"; // Replace with your database username
+$password = ""; // Replace with your database password
+$dbname = "water-management"; // Replace with your database name
 
-// Create a new database connection
-$conn = new mysqli($host, $username, $password, $db_name);
+// Create a connection
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check if the connection was successful
+// Check connection
 if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
+    die(json_encode(["message" => "Database connection failed: " . $conn->connect_error]));
+} else {
+    echo json_encode(["message" => "Database connection successful"]);
 }
 ?>
